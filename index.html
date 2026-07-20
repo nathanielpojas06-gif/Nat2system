@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payroll Pro | Perfectly Arranged Edition</title>
+    <!-- Fonts & Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+        :root { 
+            --primary: #4f46e5; 
+            --primary-hover: #4338ca;
+            --primary-light: #eff6ff;
+            --sidebar: #0f172a; 
+            --accent: #0ea5e9;
+            --success: #10b981; 
+            --success-light: #ecfdf5;
+            --danger: #ef4444; 
+            --danger-light: #fef2f2;
+            --light: #f8fafc;
+            --border: #e2e8f0;
+            --text-dark: #1e293b;
+            --text-muted: #64748b;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            --transition: all 0.2s ease-in-out;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background: #f1f5f9; 
+            display: flex; 
+            min-height: 100vh; 
+            color: var(--text-dark);
+            overflow: hidden;
+        }
+
+        /* Access Control Management */
+        .admin-only { display: none !important; }
+        body.is-admin .admin-only { display: block !important; }
+        body.is-admin th.admin-only, 
+        body.is-admin td.admin-only { display: table-cell !important; }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        /* Login Screen Overlay */
+        #login-overlay { 
+            position: fixed; 
+            inset: 0; 
+            background: radial-gradient(circle at top left, #1e293b, #0f172a); 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            z-index: 1000; 
+            transition: opacity 0.3s ease;
+        }
+        .login-box { 
+            background: white; 
+            padding: 3rem 2.5rem; 
+            border-radius: 20px; 
+            width: calc(100% - 2rem);
+            max-width: 390px; 
+            text-align: center; 
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3);
+        }
+        .login-box h2 { font-size: 1.8rem; margin-bottom: 0.5rem; font-weight: 800; color: var(--sidebar); }
+        .login-box input { margin-bottom: 1.25rem; font-size: 0.95rem; }
+
+        /* Sidebar Navigation */
+        #sidebar { 
+            width: 260px; 
+            background: var(--sidebar); 
+            color: white; 
+            display: none; 
+            flex-direction: column; 
+            box-shadow: 4px 0 10px rgba(0,0,0,0.05);
+            flex-shrink: 0;
+            z-index: 110;
+        }
+        .sidebar-header { 
+            padding: 2rem 1.5rem; 
+            font-size: 1.35rem; 
+            font-weight: 800; 
+            color: white; 
+            border-bottom: 1px solid #1e293b;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .sidebar-logo-group {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .sidebar-logo {
+            background: var(--primary);
+            width: 34px;
+            height: 34px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+        .sidebar-close-btn {
+            display: none;
+            background: transparent;
+            border: none;
+            color: #94a3b8;
+            cursor: pointer;
+        }
+        .nav-btn { 
+            width: calc(100% - 1.5rem); 
+            margin: 4px auto;
+            padding: 12px 16px; 
+            border: none; 
+            background: transparent; 
+            color: #94a3b8; 
+            text-align: left; 
+            cursor: pointer; 
+            font-size: 0.95rem; 
+            font-weight: 600;
+            display: flex; 
+            align-items: center; 
+            gap: 12px; 
+            border-radius: 10px;
+            transition: var(--transition);
+        }
+        .nav-btn:hover { 
+            background: #1e293b; 
+            color: white; 
+        }
+        .nav-btn.active { 
+            background: var(--primary); 
+            color: white; 
+        }
+        .logout-btn { margin-top: auto; color: #f87171; border-top: 1px solid #1e293b; border-radius: 0; width: 100%; padding: 1.5rem; }
+        .logout-btn:hover { background: #7f1d1d33; color: var(--danger); }
+
+        /* Main Content Area */
+        main { flex: 1; display: none; flex-direction: column; height: 100vh; overflow-y: auto; position: relative; }
+        header { 
+            background: white; 
+            padding: 1.25rem 2.5rem; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 50;
+        }
+        header h2 { font-size: 1.4rem; font-weight: 700; }
+        .header-title-area {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .menu-toggle-btn {
+            display: none;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            color: var(--text-dark);
+            padding: 4px;
+        }
+        .content-body { padding: 2.5rem; max-width: 1400px; width: 100%; margin: 0 auto; }
+
+        /* Stat Metrics Row */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .metric-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 16px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .metric-info h4 { font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700; letter-spacing: 0.05em; margin-bottom: 4px; }
+        .metric-value { font-size: 1.75rem; font-weight: 700; color: var(--text-dark); }
+        .metric-icon {
+            width: 48px; height: 48px;
+            border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            background: var(--primary-light);
+            color: var(--primary);
+            flex-shrink: 0;
+        }
+        .metric-card.success .metric-icon { background: var(--success-light); color: var(--success); }
+        .metric-card.accent .metric-icon { background: #e0f2fe; color: var(--accent); }
+
+        /* Highly Arranged Dashboard Content Grid */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1.8fr 1.2fr;
+            gap: 1.5rem;
+            align-items: start;
+        }
+
+        .card { 
+            background: white; 
+            padding: 1.75rem; 
+            border-radius: 16px; 
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-sm);
+            margin-bottom: 1.5rem; 
+        }
+        .card h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: 1.25rem; display: flex; align-items: center; gap: 8px; }
+
+        /* Form Layout */
+        .form-grid { display: flex; flex-direction: column; gap: 1rem; }
+        .form-group { display: flex; flex-direction: column; gap: 6px; }
+        .form-group label { font-size: 0.8rem; font-weight: 600; color: var(--text-muted); }
+        input { 
+            padding: 10px 14px; 
+            border: 1px solid #cbd5e1; 
+            border-radius: 8px; 
+            outline: none;
+            font-family: inherit;
+            font-size: 0.9rem;
+            transition: var(--transition);
+        }
+        input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15); }
+
+        /* Tables */
+        .table-container { overflow-x: auto; border-radius: 12px; border: 1px solid var(--border); }
+        table { width: 100%; border-collapse: collapse; background: white; text-align: left; }
+        th { 
+            padding: 14px 18px; 
+            border-bottom: 2px solid var(--border); 
+            color: var(--text-muted); 
+            font-size: 0.75rem; 
+            text-transform: uppercase; 
+            font-weight: 700;
+            background: #fafafa;
+        }
+        td { padding: 14px 18px; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background-color: #f8fafc; }
+
+        /* Badges & Buttons */
+        .btn { 
+            padding: 10px 18px; 
+            border-radius: 8px; 
+            border: none; 
+            cursor: pointer; 
+            font-weight: 600; 
+            font-size: 0.9rem;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+        .btn-main { background: var(--primary); color: white; }
+        .btn-main:hover { background: var(--primary-hover); }
+        .btn-del { background: var(--danger-light); color: var(--danger); font-size: 0.8rem; padding: 6px 12px; }
+        .btn-del:hover { background: var(--danger); color: white; }
+
+        .badge-user { background: #e0e7ff; color: var(--primary); padding: 5px 12px; border-radius: 30px; font-size: 0.8rem; font-weight: 700; display: flex; align-items: center; gap: 6px; }
+        .badge-status { background: var(--success-light); color: var(--success); padding: 2px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 700; }
+        .hidden { display: none !important; }
+
+        /* Mobile Backdrop Navigation Overlay */
+        #sidebar-backdrop {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.4);
+            backdrop-filter: blur(4px);
+            z-index: 100;
+            opacity: 0;
+            transition: opacity 0.25s ease-in-out;
+        }
+
+        /* Controls */
+        .checkbox-container { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; font-size: 0.9rem; cursor: pointer; font-weight: 500; }
+        .checkbox-container input { width: auto; margin: 0; }
+
+        /* Responsive Breakpoints & Mobile Adaptations */
+        @media(max-width: 1024px) {
+            .dashboard-grid { grid-template-columns: 1fr; }
+        }
+
+        @media(max-width: 768px) {
+            body { position: relative; }
+            .menu-toggle-btn { display: block; }
+            .sidebar-close-btn { display: block; }
+            
+            #sidebar {
+                position: fixed;
+                top: 0;
+                left: 0;
+                bottom: 0;
+                transform: translateX(-100%);
+                transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+            #sidebar.open {
+                transform: translateX(0);
+                display: flex !important;
+            }
+            #sidebar-backdrop.active {
+                display: block;
+                opacity: 1;
+            }
+            header { padding: 1rem 1.5rem; }
+            .content-body { padding: 1.5rem; }
+            .metrics-grid { grid-template-columns: 1fr; gap: 1rem; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Mobile Sidebar Backdrop -->
+<div id="sidebar-backdrop" onclick="toggleSidebar(false)"></div>
+
+<!-- Login Overlay Screen -->
+<div id="login-overlay">
+    <div class="login-box">
+        <div class="sidebar-logo" style="margin: 0 auto 1.25rem auto; width: 48px; height: 48px;">
+            <i data-lucide="wallet" style="width: 22px; height: 22px;"></i>
+        </div>
+        <h2>Payroll Pro</h2>
+        <p style="color: var(--text-muted); margin-bottom: 2rem; font-size: 0.9rem;">Enterprise Compensation Suite</p>
+        <div class="form-group" style="margin-bottom: 1rem; text-align: left;">
+            <label>Username</label>
+            <input type="text" id="user" placeholder="Enter Username">
+        </div>
+        <div class="form-group" style="margin-bottom: 1.5rem; text-align: left;">
+            <label>Password</label>
+            <input type="password" id="pass" placeholder="Enter Password">
+        </div>
+        <button class="btn btn-main" style="width: 100%; height: 44px;" onclick="handleLogin()">
+            Authenticate <i data-lucide="log-in" style="width: 16px; height: 16px;"></i>
+        </button>
+    </div>
+</div>
+
+<!-- Sidebar Navigation -->
+<nav id="sidebar">
+    <div class="sidebar-header">
+        <div class="sidebar-logo-group">
+            <div class="sidebar-logo">
+                <i data-lucide="wallet" style="width: 18px; height: 18px;"></i>
+            </div>
+            <span>Payroll Pro</span>
+        </div>
+        <button class="sidebar-close-btn" onclick="toggleSidebar(false)">
+            <i data-lucide="x" style="width: 20px; height: 20px;"></i>
+        </button>
+    </div>
+    <button class="nav-btn active" onclick="showPage('dashboard')">
+        <i data-lucide="layout-dashboard" style="width: 18px; height: 18px;"></i> Dashboard
+    </button>
+    <button id="adminNavBtn" class="nav-btn admin-only" onclick="showPage('admin-site')">
+        <i data-lucide="settings" style="width: 18px; height: 18px;"></i> Settings
+    </button>
+    <button class="nav-btn logout-btn" onclick="location.reload()">
+        <i data-lucide="log-out" style="width: 18px; height: 18px;"></i> Logout
+    </button>
+</nav>
+
+<!-- Main Dashboard Viewport -->
+<main id="main-app">
+    <header>
+        <div class="header-title-area">
+            <button class="menu-toggle-btn" onclick="toggleSidebar(true)">
+                <i data-lucide="menu" style="width: 24px; height: 24px;"></i>
+            </button>
+            <h2 id="pageTitle">Dashboard</h2>
+        </div>
+        <span id="userTag" class="badge-user">
+            <i data-lucide="user" style="width: 14px; height: 14px;"></i> <span></span>
+        </span>
+    </header>
+
+    <div class="content-body">
+        
+        <!-- Live Stat Cards Row -->
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <div class="metric-info">
+                    <h4>Total Payroll Net</h4>
+                    <div class="metric-value" id="cardTotalNet">$0.00</div>
+                </div>
+                <div class="metric-icon">
+                    <i data-lucide="banknote" style="width: 22px; height: 22px;"></i>
+                </div>
+            </div>
+            <div class="metric-card success">
+                <div class="metric-info">
+                    <h4>Active Staff</h4>
+                    <div class="metric-value" id="cardHeadcount">0</div>
+                </div>
+                <div class="metric-icon">
+                    <i data-lucide="users" style="width: 22px; height: 22px;"></i>
+                </div>
+            </div>
+            <div class="metric-card accent">
+                <div class="metric-info">
+                    <h4>Tax Withholdings (15%)</h4>
+                    <div class="metric-value" id="cardTax">$0.00</div>
+                </div>
+                <div class="metric-icon">
+                    <i data-lucide="percent" style="width: 22px; height: 22px;"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- PAGE 1: STRUCTURED DASHBOARD -->
+        <div id="dashboard-page" class="page">
+            <div class="dashboard-grid">
+                
+                <!-- Left Side: Data Table -->
+                <div class="card" style="margin-bottom: 0;">
+                    <h3><i data-lucide="table-properties" style="color: var(--primary);"></i> Payroll Registry</h3>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Employee</th>
+                                    <th>Status</th>
+                                    <th>Gross Pay</th>
+                                    <th>Tax Deduct.</th>
+                                    <th>Net Payout</th>
+                                    <th class="admin-only">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="payrollTable"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Right Side: Creation & Visual Analytics -->
+                <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+                    <!-- Admin Control Area -->
+                    <div class="card admin-only" style="margin-bottom: 0;">
+                        <h3><i data-lucide="user-plus" style="color: var(--accent);"></i> Add Employee</h3>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="name">Employee Name</label>
+                                <input type="text" id="name" placeholder="John Doe">
+                            </div>
+                            <div class="form-group">
+                                <label for="hrs">Hours Worked</label>
+                                <input type="number" id="hrs" placeholder="40" min="0">
+                            </div>
+                            <div class="form-group">
+                                <label for="rate">Hourly Rate ($)</label>
+                                <input type="number" id="rate" placeholder="25" min="0">
+                            </div>
+                            <button class="btn btn-main" style="width: 100%;" onclick="addEmployee()">
+                                <i data-lucide="check" style="width: 16px; height: 16px;"></i> Commit Record
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Analytic Distribution Chart -->
+                    <div class="card" style="margin-bottom: 0;">
+                        <h3><i data-lucide="pie-chart" style="color: var(--success);"></i> Payroll Breakdown</h3>
+                        <div style="height: 180px; position: relative;">
+                            <canvas id="payrollChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+       <!-- PAGE 2: ADMIN CONFIG -->
+        <div id="admin-site-page" class="page hidden">
+            <div class="card">
+                <h3 style="color: var(--danger);"><i data-lucide="shield"></i> Administrative Console</h3>
+                <p style="color: var(--text-muted); margin-bottom: 2rem; font-size: 0.95rem;">Configure firm-wide metrics and adjust general settings.</p>
+                
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;">
+                    <div style="background: #f8fafc; padding: 1.5rem; border-radius: 12px; border: 1px solid var(--border);">
+                        <h4 style="margin-bottom: 10px; font-weight: 700; color: var(--text-dark);">Structural Financial Summary</h4>
+                        <p id="totalNet" style="font-size: 1.2rem; font-weight: 700; margin-bottom: 6px; color: var(--success);">Total Net Payout: $0.00</p>
+                        <p id="empCount" style="color: var(--text-muted); font-size: 0.95rem;">Headcount: 0</p>
+                    </div>
+                    <div style="background: #fff7ed; padding: 1.5rem; border-radius: 12px; border: 1px solid #ffedd5;">
+                        <h4 style="margin-bottom: 12px; color: #c2410c; font-weight: 700;">Global Controls</h4>
+                        <label class="checkbox-container">
+                            <input type="checkbox"> Lock Payroll Ledger
+                        </label>
+                        <label class="checkbox-container">
+                            <input type="checkbox" checked> Send automated payout emails
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<script>
+    const sampleData = [
+        { id: 101, name: "Alexander Vance", gross: 4800, net: 4080 },
+        { id: 102, name: "Evelyn Sterling", gross: 6400, net: 5440 },
+        { id: 103, name: "Marcus Brody", gross: 3200, net: 2720 },
+        { id: 104, name: "Elena Rostova", gross: 5500, net: 4675 }
+    ];
+
+    let employees = JSON.parse(localStorage.getItem('v2Data'));
+    if (!employees || employees.length === 0) {
+        employees = sampleData;
+        localStorage.setItem('v2Data', JSON.stringify(employees));
+    }
+
+    let role = '';
+    let chartInstance = null;
+
+    // Load SVG Icons
+    lucide.createIcons();
+
+    // Toggle Sidebar visibility on mobile
+    function toggleSidebar(shouldOpen) {
+        const sidebar = document.getElementById('sidebar');
+        const backdrop = document.getElementById('sidebar-backdrop');
+        if (shouldOpen) {
+            sidebar.classList.add('open');
+            backdrop.classList.add('active');
+        } else {
+            sidebar.classList.remove('open');
+            backdrop.classList.remove('active');
+        }
+    }
+
+    function handleLogin() {
+        const u = document.getElementById('user').value.trim();
+        const p = document.getElementById('pass').value;
+        
+        if (p === '123' && (u === 'admin' || u === 'staff')) {
+            role = u;
+            document.getElementById('login-overlay').style.opacity = '0';
+            setTimeout(() => {
+                document.getElementById('login-overlay').style.display = 'none';
+            }, 250);
+            
+            document.getElementById('sidebar').style.display = 'flex';
+            document.getElementById('main-app').style.display = 'flex';
+            document.getElementById('userTag').querySelector('span').innerText = u.toUpperCase();
+            
+            if (role === 'admin') {
+                document.body.classList.add('is-admin');
+            } else {
+                document.body.classList.remove('is-admin');
+            }
+            render();
+        } else {
+            alert("Invalid Credentials.");
+        }
+    }
+
+    function showPage(pageId) {
+        document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
+        document.getElementById(pageId + '-page').classList.remove('hidden');
+        document.getElementById('pageTitle').innerText = pageId.replace('-', ' ').toUpperCase();
+        
+        document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+        if (event && event.currentTarget) {
+            event.currentTarget.classList.add('active');
+        }
+        
+        // Auto-close sidebar on mobile after selecting a page
+        toggleSidebar(false);
+        
+        if(pageId === 'admin-site') updateAdminStats();
+    }
+
+    function addEmployee() {
+        const n = document.getElementById('name').value.trim();
+        const h = parseFloat(document.getElementById('hrs').value);
+        const r = parseFloat(document.getElementById('rate').value);
+        
+        if(!n || isNaN(h) || isNaN(r)) return alert("Please fill all fields with valid numbers");
+
+        const gross = h * r;
+        const emp = { 
+            id: Date.now(), 
+            name: n, 
+            gross: gross, 
+            net: gross * 0.85 
+        };
+        
+        employees.push(emp);
+        localStorage.setItem('v2Data', JSON.stringify(employees));
+        render();
+        
+        document.getElementById('name').value = '';
+        document.getElementById('hrs').value = '';
+        document.getElementById('rate').value = '';
+    }
+
+    function render() {
+        const table = document.getElementById('payrollTable');
+        table.innerHTML = employees.map(e => {
+            const tax = e.gross * 0.15;
+            return `
+                <tr>
+                    <td><strong style="color: var(--text-dark); font-weight:600;">${e.name}</strong></td>
+                    <td><span class="badge-status">Active</span></td>
+                    <td>$${e.gross.toFixed(2)}</td>
+                    <td style="color: var(--danger); font-size: 0.85rem;">-$${tax.toFixed(2)}</td>
+                    <td style="color: var(--success); font-weight: 700;">$${e.net.toFixed(2)}</td>
+                    <td class="admin-only">
+                        <button class="btn btn-del" onclick="deleteEmp(${e.id})">Remove</button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+
+        const totalNet = employees.reduce((sum, e) => sum + e.net, 0);
+        const totalGross = employees.reduce((sum, e) => sum + e.gross, 0);
+        const totalTax = totalGross - totalNet;
+
+        document.getElementById('cardTotalNet').innerText = `$${totalNet.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        document.getElementById('cardHeadcount').innerText = employees.length;
+        document.getElementById('cardTax').innerText = `$${totalTax.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+
+        updateChart(totalNet, totalTax);
+    }
+
+    function updateChart(net, tax) {
+        const ctx = document.getElementById('payrollChart').getContext('2d');
+        if (chartInstance) chartInstance.destroy();
+
+        chartInstance = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Net Payouts', 'Taxes'],
+                datasets: [{
+                    data: [net, tax],
+                    backgroundColor: ['#4f46e5', '#ef4444'],
+                    borderWidth: 0,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            boxWidth: 12,
+                            font: { family: 'Inter', weight: '600', size: 11 },
+                            padding: 12
+                        }
+                    }
+                },
+                cutout: '75%'
+            }
+        });
+    }
+function updateAdminStats() {
+        const total = employees.reduce((sum, e) => sum + e.net, 0);
+        document.getElementById('totalNet').innerText = `Total Net Payout: $${total.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        document.getElementById('empCount').innerText = `Headcount: ${employees.length}`;
+    }
+
+    function deleteEmp(id) {
+        employees = employees.filter(e => e.id !== id);
+        localStorage.setItem('v2Data', JSON.stringify(employees));
+        render();
+        updateAdminStats();
+    }
+</script>
+</body>
+</html>
